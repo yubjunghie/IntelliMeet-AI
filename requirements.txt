@@ -1,0 +1,7 @@
+streamlit
+google-generativeai
+python-dotenv
+streamlit-mic-recorder
+python-docx
+requests
+beautifulsoup4
