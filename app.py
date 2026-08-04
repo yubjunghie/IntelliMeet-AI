@@ -83,6 +83,9 @@ with st.container():
         role_type = st.selectbox("담당자 역할", ("주최자", "강의자", "발표자", "평가자"))
     with col4:
         person_name = st.text_input("담당자 이름", "홍길동")
+        
+    st.write("") # 간격 띄우기
+    event_lang = st.radio("회의 진행 언어", ("한국어", "영어 (영문 원본 및 한글 번역본 동시 제공)"), horizontal=True)
 
 with st.container():
     st.subheader("2. 참고 자료 첨부 (선택 사항)")
@@ -151,6 +154,10 @@ if audio:
             if context_file:
                 prompt += "\n**[중요] 오디오 파일과 함께 참고 자료가 첨부되었습니다. 이 참고 자료의 내용을 바탕으로 오디오의 문맥을 더 정확히 이해하고 회의록을 풍성하게 작성해 주세요.**\n"
                 
+            # [추가] 영어 회의일 경우 영문/국문 번역 지시 추가
+            if "영어" in event_lang:
+                prompt += "\n**[중요 언어 지침] 이 회의는 영어로 진행되었습니다. 따라서 작성되는 모든 내용(핵심 내용, 주요 내용, 향후 계획 등)은 반드시 먼저 '영어(English)' 원문으로 상세히 작성하고, 각 항목 바로 아래에 자연스러운 '한국어 번역(Korean Translation)'을 함께 병기해 주세요.**\n"
+
             prompt += f"""
 [작성 규칙]
 1. 문서의 가장 서두에 이 행사를 통해 **'전달하려는 핵심 내용 (Key Takeaway)'**을 2~3줄로 강력하게 요약하여 배치하세요.
