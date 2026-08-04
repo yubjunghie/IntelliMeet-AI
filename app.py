@@ -56,17 +56,46 @@ if not check_password():
     st.stop()
 # -----------------------------------
 
-# 화면 제목
-st.title("📝 똑똑한 AI 회의록 작성 프로그램")
-st.markdown("회의가 시작할 때 마이크 버튼을 눌러 녹음을 시작하세요. 종료 시 AI가 핵심 내용을 파악하여 전문적인 회의록을 작성해 드립니다.")
+# --- 커스텀 CSS (UI/UX 개선) ---
+st.markdown("""
+<style>
+    /* 상단 메뉴, 하단 워터마크 숨기기 (더 깔끔한 상용 앱 화면처럼 보이기) */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* 메인 제목 그라데이션 스타일 */
+    .main-title {
+        font-size: 2.8rem;
+        font-weight: 900;
+        background: -webkit-linear-gradient(45deg, #1e3c72, #2a5298);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0px;
+        text-align: center;
+        padding-top: 10px;
+    }
+    .sub-title {
+        font-size: 1.1rem;
+        color: #555555;
+        text-align: center;
+        margin-bottom: 30px;
+        font-weight: 500;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 화면 제목 (디자인 적용)
+st.markdown("<h1 class='main-title'>✨ IntelliMeet AI</h1>", unsafe_allow_html=True)
+st.markdown("<p class='sub-title'>스마트한 비즈니스를 위한 AI 회의록 작성 솔루션</p>", unsafe_allow_html=True)
+st.write("") # 간격
 
 if model is None:
     st.error("⚠️ `.env` 파일에 Google Gemini API 키가 설정되지 않았습니다. API 키를 입력하고 프로그램을 다시 시작해 주세요.")
     st.stop() # API 키가 없으면 아래 코드는 실행하지 않습니다.
 
-# 입력 폼
-with st.container():
-    st.subheader("1. 행사 정보 입력")
+# 입력 폼 (카드형 테두리 적용)
+with st.container(border=True):
+    st.subheader("📋 1. 행사 정보 입력")
     
     event_title = st.text_input("행사 제목", "제목 없는 행사")
     
@@ -87,15 +116,16 @@ with st.container():
     st.write("") # 간격 띄우기
     event_lang = st.radio("회의 진행 언어", ("한국어", "영어 (영문 원본 및 한글 번역본 동시 제공)"), horizontal=True)
 
-with st.container():
-    st.subheader("2. 참고 자료 첨부 (선택 사항)")
-    st.markdown("회의와 관련된 문서(PDF, 텍스트 등)나 웹사이트 주소를 입력해 주세요. AI가 문맥을 더 정확하게 파악합니다.")
+# 참고 자료 (Expander로 숨겨서 초기 화면을 깔끔하게 유지)
+with st.expander("📎 2. 참고 자료 첨부 (선택 사항) - 클릭하여 열기"):
+    st.info("회의와 관련된 문서(PDF, 텍스트 등)나 웹사이트 주소를 입력해 주시면 AI가 전문 용어나 문맥을 더 정확하게 파악하여 품질이 높아집니다.")
     context_file = st.file_uploader("참고 문서 업로드", type=['pdf', 'txt', 'md', 'csv', 'docx'])
     context_url = st.text_input("참고 웹사이트 주소 (URL)")
 
-with st.container():
-    st.subheader("3. 회의 녹음하기")
-    st.markdown("마이크 아이콘을 한 번 클릭하면 **녹음이 시작**되고, 다시 한 번 클릭하면 **녹음이 종료**되면서 회의록 작성이 시작됩니다.")
+# 녹음 섹션 (카드형 테두리 적용)
+with st.container(border=True):
+    st.subheader("🎙️ 3. 회의 녹음 및 분석 시작")
+    st.markdown("아래 **[녹음 시작]** 버튼을 눌러 회의를 녹음하세요. 완료 후 자동으로 분석이 시작됩니다.")
     
     # [수정됨] 마이크 녹음 컴포넌트 변경 (시작/중지 버튼 명확화)
     audio = mic_recorder(
