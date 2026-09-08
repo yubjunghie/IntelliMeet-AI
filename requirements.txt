@@ -5,3 +5,4 @@ streamlit-mic-recorder
 python-docx
 requests
 beautifulsoup4
+markdown
