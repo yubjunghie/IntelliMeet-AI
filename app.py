@@ -31,7 +31,7 @@ else:
 
 if GOOGLE_API_KEY and GOOGLE_API_KEY != "여기에_발급받은_API_키를_입력하세요":
     genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-3.1-pro-preview')
+    model = genai.GenerativeModel('gemini-3.5-flash')
 else:
     model = None
 
