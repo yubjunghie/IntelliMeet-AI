@@ -37,8 +37,8 @@ else:
 
 if GOOGLE_API_KEY and GOOGLE_API_KEY != "여기에_발급받은_API_키를_입력하세요":
     genai.configure(api_key=GOOGLE_API_KEY)
-    # [수정] 오디오 분석 및 화자 분리(Diarization) 성능이 월등히 뛰어난 최신 gemini-1.5-pro 모델로 변경합니다.
-    model = genai.GenerativeModel('gemini-1.5-pro')
+    # [수정] 현재 사용 가능한 최신 고성능 모델인 gemini-2.5-pro 모델로 변경합니다.
+    model = genai.GenerativeModel('gemini-2.5-pro')
 else:
     model = None
 
