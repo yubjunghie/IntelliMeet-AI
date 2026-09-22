@@ -16,6 +16,12 @@ import markdown
 import urllib.parse
 import re
 
+# 구글 드라이브 연동 모듈
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaIoBaseUpload
+
 # 세션 상태 초기화
 if 'first_pass_result' not in st.session_state:
     st.session_state.first_pass_result = None
@@ -58,6 +64,29 @@ def check_password():
 
 if not check_password():
     st.stop()
+
+# --- 구글 드라이브 업로드 함수 ---
+def upload_to_drive(file_obj, file_name, mime_type, folder_id, credentials_dict):
+    try:
+        credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+        service = build('drive', 'v3', credentials=credentials)
+        
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+        
+        # file_obj가 문자열(경로)인지 BytesIO 객체인지 확인
+        if isinstance(file_obj, str):
+            media = MediaFileUpload(file_obj, mimetype=mime_type, resumable=True)
+        else:
+            media = MediaIoBaseUpload(file_obj, mimetype=mime_type, resumable=True)
+            
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        return file.get('id')
+    except Exception as e:
+        return str(e)
+# ----------------------------------
 
 st.markdown("""
 <style>
@@ -158,31 +187,11 @@ with st.expander("⚙️ 회의 상세 설정 및 참고 자료 (선택)"):
     
     col1, col2 = st.columns(2)
     with col1:
-        event_type = st.selectbox("행사 유형", ("회의", "세미나", "교육", "포럼", "과제평가", "심사원 과정 교육 (시험대비)"))
-    with col2:
         event_date = st.date_input("날짜", datetime.today())
+    with col2:
         event_time = st.time_input("시간", datetime.now().time())
         
-    col3, col4 = st.columns(2)
-    with col3:
-        role_type = st.selectbox("담당자 역할", ("참석자", "강의자", "발표자", "평가자"))
-    with col4:
-        person_name = st.text_input("담당자 이름", "홍길동")
-        
     event_lang = st.radio("회의 진행 언어", ("한국어", "영어 (영문 원본 및 한글 번역본 동시 제공)"), horizontal=True)
-    
-    st.markdown("---")
-    st.markdown("**📚 행사 커리큘럼 (안건)**")
-    curriculums = {
-        "회의": "1. 개회 및 참석자 소개 (회의 목적, 이전 회의 Follow-up)\n2. 핵심 현안 논의 (상황 분석, 부서별 의견 및 데이터 공유)\n3. 대안 모색 및 해결 방안 도출 (브레인스토밍, 리스크 검토)\n4. 향후 계획 수립 및 역할 분담 (Action Plan, 담당자 및 기한 설정)\n5. 요약 및 폐회 (결정 사항 최종 확인)",
-        "세미나": "1. 연사 소개 및 배경 설명 (발표자 이력, 세미나 개최 취지)\n2. 메인 주제 심층 발표 (최신 동향, 연구 결과, 사례 분석)\n3. 전문가 패널 토의 (다각적 관점의 이슈 분석 및 논쟁점)\n4. 청중 참여 Q&A (질의응답 및 추가 해설)\n5. Wrap-up 및 네트워킹 안내",
-        "교육": "1. 오리엔테이션 및 학습 목표 (과정 개요, 성취 기대치)\n2. 핵심 이론 및 개념 강의 (주요 원리, 표준 프로세스 설명)\n3. 실무 적용 및 실습 (사례 연구, 그룹 액티비티, 시뮬레이션)\n4. 성과 측정 및 평가 (이해도 점검, 퀴즈, 피드백 제공)\n5. 교육 내용 총정리 및 향후 학습 가이드",
-        "포럼": "1. 오프닝 및 기조 연설 (행사 비전, 인사말)\n2. 세션별 발제자 주제 발표 (주요 의제별 심층 발제)\n3. 지정 토론 및 패널 디스커션 (이슈별 찬반 및 대안 논의)\n4. 청중 자유 토론 및 의견 수렴 (오픈 마이크)\n5. 종합 요약, 선언문 채택 및 폐회",
-        "과제평가": "1. 과제 추진 배경 및 목표 소개 (과제 개요)\n2. 성과 및 실적 발표 (주요 산출물, 목표 달성률, 예산 집행 내역)\n3. 평가 위원 질의응답 (기술적 한계, 문제 해결 과정 검증)\n4. 보완/개선 사항 피드백 (평가위원 종합 의견)\n5. 최종 평가 점수 산정 및 향후 조치사항 정리",
-        "심사원 과정 교육 (시험대비)": "1. ISO/국제 표준 규격 핵심 요구사항 심층 해설 (조항별 팩트 체크)\n2. 부적합 사례 및 심사 기법 연구 (실무 적용 포인트)\n3. 모의 심사 롤플레이 및 강사 피드백 (실전 감각 배양)\n4. ★시험 대비 핵심 요약 (자주 출제되는 개념 정리)\n5. 예상 문제 풀이 및 오답 노트 (Q&A 포함)"
-    }
-    default_curriculum = curriculums.get(event_type, "")
-    curriculum_text = st.text_area("AI 분석에 반영될 진행 순서입니다. 필요에 따라 수정하세요.", value=default_curriculum, height=150, key=f"curriculum_{event_type}")
 
     st.markdown("---")
     st.markdown("**📎 참고 자료 첨부 (선택 사항)**")
@@ -202,6 +211,7 @@ if audio_bytes:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_file:
         tmp_file.write(audio_bytes)
         tmp_file_path = tmp_file.name
+        st.session_state.tmp_audio_path = tmp_file_path
 
     try:
         with st.spinner('인공지능이 음성을 분석하고 회의록을 작성 중입니다...'):
@@ -228,16 +238,15 @@ if audio_bytes:
             uploaded_file = genai.upload_file(path=tmp_file_path)
             files_to_send.append(uploaded_file)
             
-            # [수정] 클로바노트처럼 똑똑한 요약을 위해 프롬프트(AI 지시사항)를 아주 상세하게 변경했습니다.
-            # SECTION_DIVIDER를 추가하여 나중에 탭(Tab) 화면으로 쉽게 쪼갤 수 있게 만듭니다.
+            # [수정] 행사 유형과 담당자 등을 AI가 스스로 오디오를 듣고 판단하도록 프롬프트를 변경했습니다.
             prompt = f"""
 당신은 최고 수준의 AI 회의록 분석 비서입니다. 첨부된 오디오 파일을 깊이 있게 분석하여, '클로바노트(Clova Note)' 앱처럼 스마트하고 체계적인 회의록을 작성해 주세요.
-진행된 행사의 제목은 '{event_title}', 종류는 '{event_type}'이며, 일시는 {event_date} {event_time} 입니다.
-{role_type}는 {person_name}님 입니다.
+행사의 제목은 '{event_title}'이며, 일시는 {event_date} {event_time} 입니다.
 
-**[진행 순서 및 안건]**
-{curriculum_text}
-위의 안건을 참고하여, 전체 대화의 맥락을 정확하게 파악해 주세요.
+**[핵심 지시사항]**
+1. 오디오 내용을 바탕으로 이 행사의 성격(예: 회의, 세미나, 교육, 인터뷰 등)을 스스로 판단하여 가장 적절한 '행사 유형'을 파악해 주세요.
+2. 파악된 행사 유형에 가장 잘 맞는 목차와 안건 구성을 스스로 기획하여 요약 리포트를 작성해 주세요.
+3. 주요 화자(참석자, 강의자 등)의 역할이나 이름을 추론할 수 있다면 대화록에 자연스럽게 반영해 주세요.
 """
             if context_file:
                 prompt += "\n**[중요] 오디오 파일과 함께 참고 자료가 첨부되었습니다. 이 참고 자료의 내용을 바탕으로 전문 용어나 고유 명사를 정확하게 인식하고, 대화의 문맥을 더 정확히 분석해 주세요.**\n"
@@ -250,10 +259,10 @@ if audio_bytes:
 아래 지정된 [구분선] `<!-- SECTION_DIVIDER -->` 을 사용하여 텍스트를 정확히 3개의 파트로 나누어 출력해 주세요. 이 구분선은 모바일 앱 화면에서 탭(Tab)으로 나누어 보여주기 위해 필수적입니다.
 아래의 마크다운 구조를 엄격하게 지켜주세요.
 
-# 📝 [{event_type}] {event_title} 요약 리포트
+# 📝 [[AI가 파악한 행사유형 입력]] {event_title} 요약 리포트
 
 **일시:** {event_date} {event_time}
-**{role_type}:** {person_name}
+**주요 참석자:** (AI가 파악한 주요 화자 또는 역할 기록)
 
 ---
 
@@ -267,11 +276,6 @@ if audio_bytes:
 - **주요 논의 2:** ...
 - **마무리:** ...
 """
-            if event_type == "심사원 과정 교육 (시험대비)":
-                prompt += "\n**[특수 조건] 흐름 요약 부분에 강사가 강조한 부분과 시험 예상 문제/힌트, ISO 9001 주요 심사 포인트를 눈에 띄게 강조해 주세요.**\n"
-            elif event_type == "과제평가":
-                prompt += "\n**[특수 조건] 흐름 요약 부분에 평가 위원들의 날카로운 지적 사항과 피드백, 기술적 한계에 대한 평가를 중점적으로 기록해 주세요.**\n"
-
             prompt += f"""
 ### 👥 3. 참석자(화자)별 주요 의견 요약
 (Speaker A, Speaker B 등 화자별로 나누어, 각 인물이 주로 어떤 주장을 했고 어떤 의견을 내었는지 요약)
@@ -454,6 +458,37 @@ if st.session_state.first_pass_result:
         body = urllib.parse.quote(export_full_text)
         mailto_link = f"mailto:?subject={subject}&body={body}"
         st.markdown(f'<a href="{mailto_link}"><button style="width:100%; border-radius:8px; padding:0.4rem; background-color:white; border:1px solid #dcdede; cursor:pointer;">📧 공유</button></a>', unsafe_allow_html=True)
+        
+    st.write("")
+    
+    # --- 구글 드라이브 자동 백업 버튼 ---
+    if "gcp_service_account" in st.secrets and "drive_folder_id" in st.secrets:
+        if st.button("☁️ 구글 드라이브에 회의록 및 음성 파일 백업하기", use_container_width=True):
+            with st.spinner("구글 드라이브에 안전하게 백업 중입니다... 잠시만 기다려 주세요 ⏳"):
+                try:
+                    folder_id = st.secrets["drive_folder_id"]
+                    credentials_dict = dict(st.secrets["gcp_service_account"])
+                    
+                    # 1. 문서 (Word) 업로드
+                    doc_stream.seek(0)
+                    doc_file_name = f"[{event_date}] {event_title}_회의록.docx"
+                    doc_result = upload_to_drive(doc_stream, doc_file_name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folder_id, credentials_dict)
+                    
+                    # 2. 음성 파일 업로드
+                    audio_result = None
+                    if 'tmp_audio_path' in st.session_state and os.path.exists(st.session_state.tmp_audio_path):
+                        audio_file_name = f"[{event_date}] {event_title}_녹음본.webm"
+                        audio_result = upload_to_drive(st.session_state.tmp_audio_path, audio_file_name, 'audio/webm', folder_id, credentials_dict)
+
+                    if not str(doc_result).startswith("Error") and (audio_result is None or not str(audio_result).startswith("Error")):
+                        st.success("🎉 구글 드라이브 백업이 완벽하게 완료되었습니다!")
+                    else:
+                        st.warning(f"업로드 중 일부 문제가 발생했습니다. 문서: {doc_result}, 음성: {audio_result}")
+                except Exception as e:
+                    st.error(f"백업 중 오류가 발생했습니다: {e}")
+    else:
+        st.info("💡 구글 드라이브 연동(Secrets 설정)이 완료되면 백업 버튼이 나타납니다.")
+    # -------------------------------------
         
     st.divider()
     with st.expander("🔄 2차 가공 (보고서/기획안 형식으로 자동 변환)", expanded=False):
